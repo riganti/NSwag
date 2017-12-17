@@ -27,7 +27,7 @@ namespace NSwag.CodeGeneration.TypeScript
         /// <param name="settings">The settings.</param>
         /// <exception cref="ArgumentNullException"><paramref name="document" /> is <see langword="null" />.</exception>
         public SwaggerToTypeScriptClientGenerator(SwaggerDocument document, SwaggerToTypeScriptClientGeneratorSettings settings)
-            : this(document, settings, new TypeScriptTypeResolver(settings.TypeScriptGeneratorSettings, document))
+            : this(document, settings, new TypeScriptTypeResolver(settings.TypeScriptGeneratorSettings))
         {
         }
 
@@ -46,7 +46,7 @@ namespace NSwag.CodeGeneration.TypeScript
 
             _document = document;
             _resolver = resolver;
-            _resolver.AddGenerators(_document.Definitions);
+            _resolver.RegisterSchemaDefinitions(_document.Definitions);
             _extensionCode = new TypeScriptExtensionCode(
                 Settings.TypeScriptGeneratorSettings.ExtensionCode,
                 (Settings.TypeScriptGeneratorSettings.ExtendedClasses ?? new string[] { }).Concat(new[] { Settings.ConfigurationClass }).ToArray(),
@@ -79,7 +79,7 @@ namespace NSwag.CodeGeneration.TypeScript
             if (schema.ActualSchema.Type == JsonObjectType.File)
             {
                 return Settings.Template != TypeScriptTemplate.JQueryCallbacks &&
-                       Settings.Template != TypeScriptTemplate.JQueryPromises ? "Blob" : "any";
+                       Settings.Template != TypeScriptTemplate.JQueryPromises ? "FileResponse" : "any";
             }
 
             if (schema.ActualSchema.IsAnyType)
@@ -110,7 +110,7 @@ namespace NSwag.CodeGeneration.TypeScript
         {
             UpdateUseDtoClassAndDataConversionCodeProperties(operations);
 
-            var model = new TypeScriptClientTemplateModel(controllerClassName, operations, _extensionCode, _document, Settings);
+            var model = new TypeScriptClientTemplateModel(controllerName, controllerClassName, operations, _extensionCode, _document, Settings);
             var template = Settings.CreateTemplate(model);
             return template.Render();
         }

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using System.Web.Http;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSwag.SwaggerGeneration.WebApi;
@@ -15,6 +16,7 @@ namespace NSwag.CodeGeneration.TypeScript.Tests
 
         public class DiscussionController : ApiController
         {
+
             [HttpPost]
             public void AddMessage([FromBody]Foo message)
             {
@@ -27,12 +29,13 @@ namespace NSwag.CodeGeneration.TypeScript.Tests
             //// Arrange
             var generator = new WebApiToSwaggerGenerator(new WebApiToSwaggerGeneratorSettings());
             var document = await generator.GenerateForControllerAsync<DiscussionController>();
+            var json = document.ToJson();
 
             //// Act
             var codeGen = new SwaggerToTypeScriptClientGenerator(document, new SwaggerToTypeScriptClientGeneratorSettings
             {
                 Template = TypeScriptTemplate.Angular,
-                GenerateClientInterfaces = true, 
+                GenerateClientInterfaces = true,
                 TypeScriptGeneratorSettings =
                 {
                     TypeScriptVersion = 2.0m
@@ -41,7 +44,7 @@ namespace NSwag.CodeGeneration.TypeScript.Tests
             var code = codeGen.GenerateFile();
 
             //// Assert
-            Assert.IsTrue(code.Contains("addMessage(message: Foo): Observable<void>"));
+            Assert.IsTrue(code.Contains("addMessage(message: Foo | null): Observable<void>"));
         }
     }
 }

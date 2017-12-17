@@ -9,7 +9,6 @@
 using System.Linq;
 using NJsonSchema;
 using NJsonSchema.CodeGeneration;
-using NJsonSchema.CodeGeneration.TypeScript;
 using NSwag.CodeGeneration.Models;
 
 namespace NSwag.CodeGeneration.TypeScript.Models
@@ -30,7 +29,7 @@ namespace NSwag.CodeGeneration.TypeScript.Models
             SwaggerOperation operation,
             SwaggerToTypeScriptClientGeneratorSettings settings,
             SwaggerToTypeScriptClientGenerator generator,
-            ITypeResolver resolver)
+            TypeResolverBase resolver)
             : base(null, operation, resolver, generator, settings)
         {
             _operation = operation;
@@ -44,8 +43,7 @@ namespace NSwag.CodeGeneration.TypeScript.Models
             Parameters = parameters.Select(parameter =>
                 new TypeScriptParameterModel(parameter.Name,
                     GetParameterVariableName(parameter, _operation.Parameters), ResolveParameterType(parameter),
-                    parameter, parameters, _settings,
-                    _generator, (TypeScriptTypeResolver)resolver))
+                    parameter, parameters, _settings, _generator))
                 .ToList();
         }
 
@@ -57,8 +55,27 @@ namespace NSwag.CodeGeneration.TypeScript.Models
         public string ActualOperationNameUpper => ConversionUtilities.ConvertToUpperCamelCase(OperationName, false);
 
         /// <summary>Gets or sets the type of the result.</summary>
-        public override string ResultType => SupportsStrictNullChecks && UnwrappedResultType != "void" && UnwrappedResultType != "null" ?
-            UnwrappedResultType + " | null" : UnwrappedResultType;
+        public override string ResultType
+        {
+            get
+            {
+                var response = GetSuccessResponse();
+                var isNullable = response?.IsNullable(_settings.CodeGeneratorSettings.SchemaType) == true;
+
+                var resultType = isNullable && SupportsStrictNullChecks && UnwrappedResultType != "void" && UnwrappedResultType != "null" ?
+                    UnwrappedResultType + " | null" :
+                    UnwrappedResultType;
+
+                if (WrapResponse)
+                {
+                    return _settings.ResponseClass.Replace("{controller}", ControllerName) + "<" + resultType + ">";
+                }
+                else
+                {
+                    return resultType;
+                }
+            }
+        }
 
         /// <summary>Gets a value indicating whether the operation requires mappings for DTO generation.</summary>
         public bool RequiresMappings => Responses.Any(r => r.HasType && r.ActualResponseSchema.UsesComplexObjectSchema());
@@ -70,7 +87,7 @@ namespace NSwag.CodeGeneration.TypeScript.Models
         public bool HandleReferences => _settings.TypeScriptGeneratorSettings.HandleReferences;
 
         /// <summary>Gets a value indicating whether the template can request blobs.</summary>
-        public bool CanRequestBlobs => IsFetchOrAurelia || IsAngular || IsAngularJS;
+        public bool CanRequestBlobs => !IsJQuery;
 
         /// <summary>Gets a value indicating whether to use blobs with Angular.</summary>
         public bool RequestAngularBlobs => IsAngular && IsFile;
@@ -78,17 +95,34 @@ namespace NSwag.CodeGeneration.TypeScript.Models
         /// <summary>Gets a value indicating whether to use blobs with AngularJS.</summary>
         public bool RequestAngularJSBlobs => IsAngularJS && IsFile;
 
+        /// <summary>Gets a value indicating whether to render for AngularJS.</summary>
+        public bool IsAngularJS => _settings.Template == TypeScriptTemplate.AngularJS;
+
+        /// <summary>Gets a value indicating whether to render for Angular2.</summary>
+        public bool IsAngular => _settings.Template == TypeScriptTemplate.Angular;
+
+        /// <summary>Gets a value indicating whether to render for JQuery.</summary>
+        public bool IsJQuery => _settings.Template == TypeScriptTemplate.JQueryCallbacks ||
+                                _settings.Template == TypeScriptTemplate.JQueryPromises;
+
+        /// <summary>Gets a value indicating whether to render for Fetch or Aurelia</summary>
+        public bool IsFetchOrAurelia => _settings.Template == TypeScriptTemplate.Fetch ||
+                                        _settings.Template == TypeScriptTemplate.Aurelia;
+
+        /// <summary>Gets a value indicating whether to use HttpClient with the Angular template.</summary>
+        public bool UseAngularHttpClient => IsAngular && _settings.HttpClass == HttpClass.HttpClient;
+
         /// <summary>Gets or sets the type of the exception.</summary>
         public override string ExceptionType
         {
             get
             {
-                if (_operation.Responses.Count(r => !HttpUtilities.IsSuccessStatusCode(r.Key)) == 0)
+                if (_operation.ActualResponses.Count(r => !HttpUtilities.IsSuccessStatusCode(r.Key)) == 0)
                     return "string";
 
-                return string.Join(" | ", _operation.Responses
+                return string.Join(" | ", _operation.ActualResponses
                     .Where(r => !HttpUtilities.IsSuccessStatusCode(r.Key) && r.Value.ActualResponseSchema != null)
-                    .Select(r => _generator.GetTypeName(r.Value.ActualResponseSchema, r.Value.IsNullable(_settings.CodeGeneratorSettings.NullHandling), "Exception"))
+                    .Select(r => _generator.GetTypeName(r.Value.ActualResponseSchema, r.Value.IsNullable(_settings.CodeGeneratorSettings.SchemaType), "Exception"))
                     .Concat(new[] { "string" }));
             }
         }
@@ -106,19 +140,11 @@ namespace NSwag.CodeGeneration.TypeScript.Models
             }
         }
 
-        /// <summary>Gets a value indicating whether to render for AngularJS.</summary>
-        public bool IsAngularJS => _settings.Template == TypeScriptTemplate.AngularJS;
+        /// <summary>Gets a value indicating whether to wrap success responses to allow full response access.</summary>
+        public bool WrapResponses => _settings.WrapResponses;
 
-        /// <summary>Gets a value indicating whether to render for Angular2.</summary>
-        public bool IsAngular => _settings.Template == TypeScriptTemplate.Angular;
-
-        /// <summary>Gets a value indicating whether to render for JQuery.</summary>
-        public bool IsJQuery => _settings.Template == TypeScriptTemplate.JQueryCallbacks ||
-                                _settings.Template == TypeScriptTemplate.JQueryPromises;
-
-        /// <summary>Gets a value indicating whether to render for Fetch or Aurelia</summary>
-        public bool IsFetchOrAurelia => _settings.Template == TypeScriptTemplate.Fetch ||
-                                        _settings.Template == TypeScriptTemplate.Aurelia;
+        /// <summary>Gets the response class name.</summary>
+        public string ResponseClass => _settings.ResponseClass.Replace("{controller}", ControllerName);
 
         /// <summary>Resolves the type of the parameter.</summary>
         /// <param name="parameter">The parameter.</param>
@@ -147,7 +173,7 @@ namespace NSwag.CodeGeneration.TypeScript.Models
         protected override TypeScriptResponseModel CreateResponseModel(string statusCode, SwaggerResponse response,
             JsonSchema4 exceptionSchema, IClientGenerator generator, ClientGeneratorBaseSettings settings)
         {
-            return new TypeScriptResponseModel(statusCode, response, response == GetSuccessResponse(),
+            return new TypeScriptResponseModel(this, statusCode, response, response == GetSuccessResponse(),
                 exceptionSchema, generator, (SwaggerToTypeScriptClientGeneratorSettings)settings);
         }
     }
