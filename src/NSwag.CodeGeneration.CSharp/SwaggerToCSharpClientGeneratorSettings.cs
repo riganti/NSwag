@@ -23,6 +23,10 @@ namespace NSwag.CodeGeneration.CSharp
             HttpClientType = "System.Net.Http.HttpClient";
             WrapDtoExceptions = true;
             DisposeHttpClient = true; 
+            ParameterDateTimeFormat = "s";
+            GenerateUpdateJsonSerializerSettingsMethod = true;
+            QueryNullValue = "";
+            GenerateBaseUrlProperty = true;
         }
 
         /// <summary>Gets or sets the full name of the base class.</summary>
@@ -61,6 +65,9 @@ namespace NSwag.CodeGeneration.CSharp
         /// <summary>Gets or sets a value indicating whether to use and expose the base URL (default: true).</summary>
         public bool UseBaseUrl { get; set; }
 
+        /// <summary>Gets or sets a value indicating whether to generate the BaseUrl property, must be defined on the base class otherwise (default: true).</summary>
+        public bool GenerateBaseUrlProperty { get; set; }
+
         /// <summary>Gets or sets a value indicating whether to generate synchronous methods (not recommended, default: false).</summary>
         public bool GenerateSyncMethods { get; set; }
 
@@ -70,9 +77,16 @@ namespace NSwag.CodeGeneration.CSharp
         /// </summary>
         public string HttpClientType { get; set; }
 
-        /// <summary>
-        /// Whether method should be annotated by [HttpOperation(method, path)]
-        /// </summary>
-        public bool GenerateDescriptorAttributes { get; set; }
+        /// <summary>Gets or sets the format for DateTime type method parameters (default: "s").</summary>
+        public string ParameterDateTimeFormat { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether to generate the UpdateJsonSerializerSettings method (must be implemented in the base class otherwise, default: true).</summary>
+        public bool GenerateUpdateJsonSerializerSettingsMethod { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether to serialize the type information in a $type property (not recommended, also sets TypeNameHandling = Auto).</summary>
+        public bool SerializeTypeInformation { get; set; }
+
+        /// <summary>Gets or sets the null value used for query parameters which are null (default: '').</summary>
+        public string QueryNullValue { get; set; }
     }
 }

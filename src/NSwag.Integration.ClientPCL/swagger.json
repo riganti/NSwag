@@ -1,4 +1,5 @@
 ﻿{
+  "x-generator": "NSwag v11.12.12.0 (NJsonSchema v9.10.13.0 (Newtonsoft.Json v9.0.0.0))",
   "info": {
     "title": "Web API Swagger specification",
     "version": "1.0.0"
@@ -24,6 +25,7 @@
           {
             "name": "location",
             "in": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/GeoPoint"
             },
@@ -76,6 +78,7 @@
           {
             "name": "points",
             "in": "body",
+            "required": true,
             "schema": {
               "type": "array",
               "items": {
@@ -229,6 +232,7 @@
           {
             "name": "request",
             "in": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/GenericRequestOfAddressAndPerson"
             },
@@ -283,6 +287,33 @@
         }
       }
     },
+    "/api/Geo/PostDouble": {
+      "post": {
+        "tags": [
+          "Geo"
+        ],
+        "operationId": "Geo_PostDouble",
+        "parameters": [
+          {
+            "type": "number",
+            "name": "value",
+            "in": "query",
+            "x-nullable": true,
+            "format": "double"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            },
+            "x-nullable": true
+          }
+        }
+      }
+    },
     "/api/Persons": {
       "get": {
         "tags": [
@@ -312,6 +343,7 @@
           {
             "name": "person",
             "in": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/Person"
             },
@@ -337,10 +369,14 @@
             "name": "gender",
             "in": "path",
             "required": true,
-            "schema": {
+            "x-schema": {
               "$ref": "#/definitions/Gender"
             },
-            "x-nullable": false
+            "x-nullable": false,
+            "enum": [
+              "Male",
+              "Female"
+            ]
           }
         ],
         "responses": {
@@ -369,10 +405,14 @@
             "name": "gender",
             "in": "query",
             "required": true,
-            "schema": {
+            "x-schema": {
               "$ref": "#/definitions/Gender"
             },
-            "x-nullable": true
+            "x-nullable": true,
+            "enum": [
+              "Male",
+              "Female"
+            ]
           }
         ],
         "responses": {
@@ -406,17 +446,17 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/Person"
-            },
-            "x-nullable": true
-          },
           "500": {
             "description": "",
             "schema": {
               "$ref": "#/definitions/PersonNotFoundException"
+            },
+            "x-nullable": true
+          },
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Person"
             },
             "x-nullable": true
           }
@@ -440,6 +480,34 @@
         "responses": {
           "204": {
             "description": ""
+          }
+        }
+      }
+    },
+    "/api/Persons/transform": {
+      "post": {
+        "tags": [
+          "Persons"
+        ],
+        "operationId": "Persons_Transform",
+        "parameters": [
+          {
+            "name": "person",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Person"
+            },
+            "x-nullable": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Person"
+            },
+            "x-nullable": true
           }
         }
       }
@@ -528,6 +596,9 @@
             "name": "person",
             "in": "body",
             "required": true,
+            "schema": {
+              "type": "string"
+            },
             "x-nullable": true
           }
         ],
@@ -536,6 +607,39 @@
             "description": "",
             "schema": {
               "type": "string"
+            },
+            "x-nullable": true
+          }
+        }
+      }
+    },
+    "/api/Persons/upload": {
+      "post": {
+        "tags": [
+          "Persons"
+        ],
+        "operationId": "Persons_Upload",
+        "consumes": [
+          "application/octet-stream"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "byte"
+            },
+            "x-nullable": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "string",
+              "format": "byte"
             },
             "x-nullable": true
           }
@@ -703,8 +807,12 @@
           "type": "string"
         },
         "SkillLevel": {
-          "$ref": "#/definitions/SkillLevel",
-          "default": 1
+          "default": 1,
+          "allOf": [
+            {
+              "$ref": "#/definitions/SkillLevel"
+            }
+          ]
         }
       },
       "allOf": [

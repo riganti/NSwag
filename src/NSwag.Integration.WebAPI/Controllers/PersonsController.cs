@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
 using System.Xml;
@@ -43,11 +45,19 @@ namespace NSwag.Integration.WebAPI.Controllers
         }
 
         [Route("{id}")]
-        [ResponseType(typeof(Person))]
+        [SwaggerDefaultResponse]
         [ResponseType("500", typeof(PersonNotFoundException))]
         public Person Get(Guid id)
         {
-            return new Person();
+            return new Teacher();
+        }
+
+        [HttpPost]
+        [Route("transform")]
+        public Person Transform([FromBody]Person person)
+        {
+            person.FirstName = person.FirstName.ToUpperInvariant();
+            return person;
         }
 
         [Route("Throw")]
@@ -85,6 +95,18 @@ namespace NSwag.Integration.WebAPI.Controllers
         public void Delete(Guid id)
         {
 
+        }
+
+        [HttpPost, Route("upload")]
+        public async Task<byte[]> Upload([FromBody] Stream data)
+        {
+            // TODO: Implement stream handler: https://github.com/RSuter/NJsonSchema/issues/445
+            return await this.Request.Content.ReadAsByteArrayAsync();
+            //using (var ms = new MemoryStream())
+            //{
+            //    data.CopyTo(ms);
+            //    return ms.ToArray();
+            //}
         }
     }
 }

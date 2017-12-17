@@ -11,12 +11,13 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using NJsonSchema;
 using NSwag.Collections;
 
 namespace NSwag
 {
     /// <summary>Describes a JSON web service operation. </summary>
-    public class SwaggerOperation
+    public class SwaggerOperation : JsonExtensionObject
     {
         /// <summary>Initializes a new instance of the <see cref="SwaggerOperations"/> class.</summary>
         public SwaggerOperation()
@@ -109,10 +110,6 @@ namespace NSwag
         [JsonProperty(PropertyName = "security", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<SwaggerSecurityRequirement> Security { get; set; }
 
-        /// <summary>Get or set the schema less extensions (this can be used as vendor extensions as well).</summary>
-        [JsonExtensionData]
-        public IDictionary<string, object> ExtensionData { get; set; }
-
         /// <summary>Gets the list of MIME types the operation can consume, either from the operation or from the <see cref="SwaggerDocument"/>.</summary>
         [JsonIgnore]
         public IEnumerable<string> ActualConsumes => Consumes ?? Parent.Parent.Consumes;
@@ -125,16 +122,9 @@ namespace NSwag
         [JsonIgnore]
         public IEnumerable<SwaggerSchema> ActualSchemes => Schemes ?? Parent.Parent.Schemes;
 
-        /// <summary>Gets the responses from the operation and from the <see cref="SwaggerDocument"/>.</summary>
+        /// <summary>Gets the responses from the operation and from the <see cref="SwaggerDocument"/> and dereferences them if necessary.</summary>
         [JsonIgnore]
-        public IReadOnlyDictionary<string, SwaggerResponse> AllResponses
-        {
-            get
-            {
-                var empty = new Dictionary<string, SwaggerResponse>();
-                return (Responses ?? empty).Concat(Parent.Parent.Responses ?? empty).ToDictionary(t => t.Key, t => t.Value);
-            }
-        }
+        public IReadOnlyDictionary<string, SwaggerResponse> ActualResponses => Responses.ToDictionary(t => t.Key, t => t.Value.ActualResponse);
 
         /// <summary>Gets the actual security description, either from the operation or from the <see cref="SwaggerDocument"/>.</summary>
         [JsonIgnore]
